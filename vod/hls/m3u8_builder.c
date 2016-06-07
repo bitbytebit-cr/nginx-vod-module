@@ -283,6 +283,7 @@ m3u8_builder_build_index_playlist(
 	segment_durations_t segment_durations;
 	segment_duration_item_t* cur_item;
 	segment_duration_item_t* last_item;
+	uint32_t max_segment_duration;
 	hls_encryption_type_t encryption_type;
 	segmenter_conf_t* segmenter_conf = media_set->segmenter_conf;
 	uint64_t duration_millis;
@@ -397,11 +398,21 @@ m3u8_builder_build_index_playlist(
 		return VOD_ALLOC_FAILED;
 	}
 
+	// Find the max segment duration for accurate m3u8 creation
+	max_segment_duration = 0;
+	for (cur_item = segment_durations.items; cur_item < last_item; cur_item++) {
+	    uint32_t segment_duration;
+	    segment_duration = rescale_time(cur_item->duration, segment_durations.timescale, scale);
+	    if (segment_duration > max_segment_duration)
+		max_segment_duration = segment_duration;
+	}
+
+
 	// write the header
 	p = vod_sprintf(
 		result->data,
 		M3U8_HEADER_PART1,
-		(segmenter_conf->max_segment_duration + 500) / 1000);
+		(max_segment_duration + 500) / 1000);
 
 	if (media_set->type == MEDIA_SET_VOD)
 	{
